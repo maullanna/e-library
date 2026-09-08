@@ -1,0 +1,17 @@
+# Minimal .htaccess for CyberPanel
+RewriteEngine On
+
+# Basic URL rewriting
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Prevent access to sensitive files
+<FilesMatch "\.(env|log|sql|bak|backup)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent access to config files
+<FilesMatch "^(config|sysconfig|database)\.php$">
+    Require all denied
+</FilesMatch>

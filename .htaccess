@@ -1,0 +1,37 @@
+# SLiMS .htaccess Configuration for CyberPanel
+RewriteEngine On
+
+# Basic security headers (compatible with CyberPanel)
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# Prevent access to sensitive files
+<FilesMatch "\.(env|log|sql|bak|backup)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent access to config files
+<FilesMatch "^(config|sysconfig|database)\.php$">
+    Require all denied
+</FilesMatch>
+
+# Block sensitive directories
+RedirectMatch 403 ^/(install|vendor|logs)
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/javascript
+</IfModule>
+
+# Error pages
+ErrorDocument 404 /index.php
+
+# URL Rewriting
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]

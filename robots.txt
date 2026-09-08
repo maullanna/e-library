@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Disallow admin area
+Disallow: /admin/
+Disallow: /install/
+Disallow: /vendor/
+Disallow: /logs/
+Disallow: /config/
+Disallow: /files/backup/
+Disallow: /files/cache/
+
+# Allow important files
+Allow: /css/
+Allow: /js/
+Allow: /images/
+Allow: /template/
+
+Sitemap: https://e-library.akti.ac.id/sitemap.xml
