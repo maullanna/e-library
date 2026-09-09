@@ -18,8 +18,8 @@
  *
  */
 
-use SLiMS\Csv\Writer;
-use SLiMS\Csv\Row;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 /* Biblio data export section */
 
 // key to authenticate
@@ -46,11 +46,6 @@ if (!$can_read) {
 }
 
 if (isset($_POST['doExport'])) {
-  // check for form validity
-  if (empty($_POST['fieldSep']) OR empty($_POST['fieldEnc'])) {
-      utility::jsToastr('Data Export', __('Required fields (*)  must be filled correctly!'), 'error');
-      exit();
-  } else {
     // set PHP time limit
     set_time_limit(0);
 
@@ -101,75 +96,52 @@ if (isset($_POST['doExport'])) {
       utility::jsToastr('Data Export', __('Error on query to database, Export FAILED!'), 'error');
     } else {
         if ($all_data_q->num_rows > 0) {
-          // Define CSV standart based on user input
-          $csv_params = [
-            'separator' => trim($_POST['fieldSep']),
-            'enclosed_with' =>  trim($_POST['fieldEnc']),
-            'record_separator' => [
-                'newline' => ($_POST['recordSep'] === 'NEWLINE' ? "\n" : "\r"),
-                'return' => "\r"
-            ]
-          ];
-
-          $csv = new Writer;
-
-          // Define header row instance
-          $header = new Row([], array_merge($csv_params, ['key_based' => true]));
+          $rows = [];
+          $headers = null;
 
           while ($biblio_d = $all_data_q->fetch_assoc()) {
               array_walk($biblio_d, function(&$item, $key) { $item = trim( str_replace(array("\n", "\r"), '\\n', $item) ); });
-              $itemData = '';
               $id = $biblio_d['biblio_id'];
 
               // skip biblio_id
               unset($biblio_d['biblio_id']);
 
-              // Header process
-              if (count($header) === 0 && isset($_POST['header'])) {
-                // main header data
-                foreach ($biblio_d as $columnName => $value) $header->add($columnName, $value??'');
-                // additional header data
-                $header->add('authors', '');
-                $header->add('topics', '');
-                $header->add('item_code', '');
-
-                // add into csv collection
-                $csv->add($header);
-              }
-              
-              // initialization csv row data with custom formatter
-              $itemData = new Row($biblio_d, $csv_params);
-
-              /**
-               * Author,Topic & Item Code seperated from
-               * main query. After main data add into row instance
-               * we need to add another with "add" method.
-               */
               // authors column
-              $itemData->add('authors', getValues($dbs, 'SELECT a.author_name FROM biblio_author AS ba
+              $biblio_d['authors'] = getValues($dbs, 'SELECT a.author_name FROM biblio_author AS ba
               LEFT JOIN mst_author AS a ON ba.author_id=a.author_id
-              WHERE ba.biblio_id='.$id)??'');
+              WHERE ba.biblio_id='.$id)??'';
 
               // topics column
-              $itemData->add('topics', getValues($dbs, 'SELECT t.topic FROM biblio_topic AS bt
+              $biblio_d['topics'] = getValues($dbs, 'SELECT t.topic FROM biblio_topic AS bt
               LEFT JOIN mst_topic AS t ON bt.topic_id=t.topic_id
-              WHERE bt.biblio_id='.$id)??'');
+              WHERE bt.biblio_id='.$id)??'';
 
               // item code column
-              $itemData->add('item_code', getValues($dbs, 'SELECT item_code FROM item AS i
-              WHERE i.biblio_id='.$id)??'');
+              $biblio_d['item_code'] = getValues($dbs, 'SELECT item_code FROM item AS i
+              WHERE i.biblio_id='.$id)??'';
 
-              // add into csv collection
-              $csv->add($itemData);
+              if ($headers === null) { $headers = array_keys($biblio_d); }
+              $rows[] = array_values($biblio_d);
           }
 
-          // After all we stream it into a file
-          $csv->download('senayan_biblio_export');
+          $spreadsheet = new Spreadsheet();
+          $sheet = $spreadsheet->getActiveSheet();
+          $rowNum = 1;
+          if (isset($_POST['header'])) {
+              $sheet->fromArray($headers, null, 'A1');
+              $rowNum++;
+          }
+          $sheet->fromArray($rows, null, 'A'.$rowNum);
+
+          header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          header('Content-Disposition: attachment; filename="senayan_biblio_export.xlsx"');
+          header('Cache-Control: max-age=0');
+          (new Xlsx($spreadsheet))->save('php://output');
+          exit();
         } else {
           utility::jsToastr('Data Export', __('There is no record in bibliographic database yet, Export FAILED!'), 'error');
         }
     }
-  }
   exit();
 }
 ?>
@@ -179,7 +151,7 @@ if (isset($_POST['doExport'])) {
     	<h2><?php echo __('Export Tool'); ?></h2>
 	</div>
 	<div class="infoBox">
-    	<?php echo __('Export bibliographics data to CSV file'); ?>
+    	<?php echo __('Export bibliographics data to XLSX file'); ?>
 	</div>
 </div>
 </div>
@@ -195,19 +167,11 @@ $form->table_header_attr = 'class="alterCell font-weight-bold"';
 $form->table_content_attr = 'class="alterCell2"';
 
 /* Form Element(s) */
-// field separator
-$form->addTextField('text', 'fieldSep', __('Field Separator').'*', ''.htmlentities(',').'', 'style="width: 10%;" maxlength="3" class="form-control"');
-//  field enclosed
-$form->addTextField('text', 'fieldEnc', __('Field Enclosed With').'*', ''.htmlentities('"').'', 'style="width: 10%;" class="form-control"');
-// record separator
-$rec_sep_options[] = array('NEWLINE', 'NEWLINE');
-$rec_sep_options[] = array('RETURN', 'CARRIAGE RETURN');
-$form->addSelectList('recordSep', __('Record Separator'), $rec_sep_options,'','class="form-control col-4"');
 // number of records to export
 $form->addTextField('text', 'recordNum', __('Number of Records To Export (0 for all records)'), '0', 'style="width: 10%;" class="form-control"');
 // records offset
 $form->addTextField('text', 'recordOffset', __('Start From Record'), '1', 'style="width: 10%;"  class="form-control"');
 // header (column name)
-$form->addCheckBox('header', __('Put columns names in the first row'), array( array('1', __('Yes')) ), '');
+$form->addCheckBox('header', __('Put columns names in the first row'), array( array('1', __('Yes')) ), '1');
 // output the form
 echo $form->printOut();
