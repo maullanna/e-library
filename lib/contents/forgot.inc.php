@@ -105,7 +105,7 @@ if (isset($_POST['resetPass'])) {
         <div style="font-weight: bold; color: #FF0000;"><?php echo __('Your browser does not support Javascript or Javascript is disabled. Application won\'t run without Javascript!'); ?><div>
     </noscript>
     <div class="mb-3">
-        <?php 
+        <?php
         if (flash()->isEmpty()) {
             // if there is login action
             echo __('If you need help resetting your password, we can help by sending you a link to reset it.');
@@ -113,11 +113,13 @@ if (isset($_POST['resetPass'])) {
             flash()->show($key);
         }
         ?>
+        &nbsp;<a href="javascript:void(0)" id="forgotHelpLink"><strong><?php echo __('How does this work?'); ?></strong></a>
     </div>
     <form action="index.php?p=forgot" method="post" novalidation>
         <div class="heading1"><?php echo __('Your email address'); ?></div>
+        <div style="font-size: 12px; color: #666; margin-bottom: 4px;"><?php echo __('Use the email address registered to your account (not a phone number). We will send a reset link to that email inbox.'); ?></div>
         <div class="login_input"><input type="email" name="currentmail" id="currentmail" class="login_input" required /></div>
-        <?php 
+        <?php
         if ($captcha->isSectionActive()) { ?>
             <div class="captchaAdmin">
                 <?= $captcha->getCaptcha() ?>
@@ -131,7 +133,27 @@ if (isset($_POST['resetPass'])) {
         </div>
     </form>
 </div>
-<script type="text/javascript">jQuery('#currentmail').focus();</script>
+
+<div id="forgotHelpOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998;">
+    <div style="background:#fff; max-width:420px; margin:8% auto; padding:20px 24px; border-radius:6px; position:relative; box-shadow:0 2px 12px rgba(0,0,0,0.3);">
+        <a href="javascript:void(0)" id="forgotHelpClose" style="position:absolute; top:10px; right:14px; font-size:18px; font-weight:bold; text-decoration:none; color:#888;">&times;</a>
+        <h4 style="margin-top:0;"><?php echo __('How to reset your password'); ?></h4>
+        <ol style="padding-left:18px; line-height:1.7;">
+            <li><?php echo __('Type in the <strong>email address</strong> that is registered to your account (ask the system administrator if you are not sure which email is registered). This is <strong>not</strong> your phone number.'); ?></li>
+            <li><?php echo __('Click the <strong>"Reset my password"</strong> button.'); ?></li>
+            <li><?php echo __('Open your <strong>email inbox</strong> (check the Spam/Junk folder too) on your phone or computer. Look for a message from the library.'); ?></li>
+            <li><?php echo __('Click the link inside that email to set a new password. The link can only be used once.'); ?></li>
+        </ol>
+        <div style="font-size:12px; color:#888; margin-top:10px;"><?php echo __('Didn\'t receive the email after a few minutes? Make sure the email address you typed is correct and matches what is registered on your account.'); ?></div>
+    </div>
+</div>
+<script type="text/javascript">
+jQuery('#currentmail').focus();
+jQuery('#forgotHelpLink').on('click', function() { jQuery('#forgotHelpOverlay').fadeIn(150); });
+jQuery('#forgotHelpClose, #forgotHelpOverlay').on('click', function(e) {
+    if (e.target === this) jQuery('#forgotHelpOverlay').fadeOut(150);
+});
+</script>
 
 <?php
 // main content
