@@ -217,6 +217,12 @@ if (isset($_POST['doImport'])) {
                         $item_code = trim((string) ($field[0] ?? ''));
                         $title = trim((string) ($field[18] ?? ''));
 
+                        // safety net: skip a header row even if the "header" checkbox was not checked
+                        if (strcasecmp($item_code, 'item_code') === 0 && strcasecmp($title, 'title') === 0) {
+                            $row_count++;
+                            continue;
+                        }
+
                         if ($item_code === '') {
                             $row_count++;
                             continue;

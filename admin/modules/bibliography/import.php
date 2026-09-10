@@ -243,6 +243,13 @@ if (isset($_POST['doImport'])) {
         $fields = $reader->getFields();
         $fields = array_pop($fields);
 
+        // safety net: skip a header row even if the "header" checkbox was not checked
+        if (strcasecmp((string) ($fields[0] ?? ''), 'title') === 0) {
+          $row++;
+          importProgress(round($row/$lineNumber * 100));
+          return;
+        }
+
         $authors = $fields[15];
         $subjects = $fields[16];
         $items = $fields[17];
