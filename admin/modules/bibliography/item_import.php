@@ -131,6 +131,8 @@ if (isset($_POST['doImport'])) {
         $csvPath = SB . FLS . DS . 'temp' . DS . $_SESSION['csv']['name'] . '.csv';
         $sheet = IOFactory::load($spreadsheetPath)->getActiveSheet();
         $rows = $sheet->toArray('', false, false, false);
+        // received_date(4), order_date(8), invoice_date(15), input_date(16), last_update(17)
+        $rows = fixExcelSerialDates($rows, [4, 8, 15, 16, 17], isset($_SESSION['csv']['header']));
         $csvHandle = fopen($csvPath, 'w');
         foreach ($rows as $rowData) {
             fputcsv($csvHandle, $rowData, trim($_SESSION['csv']['format']['fieldSep']), trim($_SESSION['csv']['format']['fieldEnc']));

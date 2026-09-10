@@ -381,3 +381,41 @@ function styleExportSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, 
     $sheet->getColumnDimension($col)->setAutoSize(true);
   }
 }
+
+/**
+ * Fix Excel "serial date" numbers (e.g. 46195) in specific known
+ * date columns of a raw array of rows read via Worksheet::toArray()
+ * with $formatData disabled. When a spreadsheet cell is formatted
+ * as a Date in Excel, toArray() with formatData=false returns the
+ * raw day-count serial instead of a readable date, which otherwise
+ * gets imported into SLiMS as-is (e.g. "46195" instead of a date).
+ *
+ * @param array $rows              rows as returned by Worksheet::toArray()
+ * @param array $dateColumnIndexes zero-based column indexes that hold dates
+ * @param bool  $hasHeaderRow      whether row 0 is a header row to skip
+ * @return array the same rows, with date columns normalized to Y-m-d
+ */
+function fixExcelSerialDates(array $rows, array $dateColumnIndexes, bool $hasHeaderRow = false): array
+{
+  foreach ($rows as $rowIndex => &$row) {
+    if ($hasHeaderRow && $rowIndex === 0) continue;
+
+    foreach ($dateColumnIndexes as $col) {
+      $value = $row[$col] ?? '';
+      if ($value === '' || $value === null) continue;
+
+      // an Excel date serial is a plain number (not something already
+      // typed as a date string like "2026-06-15" or "15/06/2026")
+      if (is_numeric($value)) {
+        try {
+          $row[$col] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+        } catch (\Throwable $e) {
+          // leave the original value untouched if conversion fails
+        }
+      }
+    }
+  }
+  unset($row);
+
+  return $rows;
+}
