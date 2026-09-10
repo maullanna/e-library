@@ -68,7 +68,11 @@ if (isset($_POST['resetPass'])) {
             $file_d = $_q->fetch_assoc();
             $name = $file_d['realname'];
             /// Generate a token for forgot password
-            $salt = password_hash($email, PASSWORD_DEFAULT);
+            // use a plain hex token (not a bcrypt hash) so the reset link
+            // never contains characters like '.', '$' or '/' that some
+            // email clients mistake for punctuation and strip from the
+            // end of an auto-linked plain-text URL, breaking the link
+            $salt = bin2hex(random_bytes(32));
             $_sql_update_salt = sprintf("UPDATE user SET forgot = '{$salt}', last_update = CURDATE() WHERE email = '%s'", $email);
             // write log
             writeLog('staff', $name, 'Forgot Password', $name.' has been requested a new password.', 'Password', 'Request');
