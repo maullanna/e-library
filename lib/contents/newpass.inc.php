@@ -62,7 +62,21 @@ if (isset($_POST['updatePassword'])) {
       $_update_q = $dbs->query($_sql_update_password);
       // error check
       if ($dbs->error) {
-        echo __('Failed to query user data from database with error: '.$dbs->error);
+        echo '<script type="text/javascript">';
+        echo 'alert("'.__('Failed to update password, please try again.').'");';
+        echo '</script>';
+        exit();
+      }
+      // the salt may have been invalidated by a newer reset request in the
+      // meantime (e.g. an older email link clicked after a fresh one was
+      // requested) - in that case the query above matches zero rows, so we
+      // must not report success or the password silently stays unchanged
+      if ($dbs->affected_rows < 1) {
+        echo '<script type="text/javascript">';
+        echo 'alert("'.__('This reset link is no longer valid, possibly because a newer password reset was requested. Please request a new reset link.').'");';
+        echo 'location.href = "index.php?p=forgot";';
+        echo '</script>';
+        exit();
       }
       // write log
       writeLog('staff', $_uname, 'Login', 'Change password SUCCESS for user '.$_uname.' from address '.$_SERVER['REMOTE_ADDR'], 'Password', 'Update');
