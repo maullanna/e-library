@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Copyright (C) 2007,2008  Arie Nugraha (dicarve@yahoo.com)
  *
@@ -19,6 +20,7 @@
  */
 
 /* Biblio Import section */
+
 use SLiMS\Filesystems\Storage;
 use SLiMS\DB;
 use SLiMS\Debug\VarDumper;
@@ -36,15 +38,15 @@ define('DB_ACCESS', 'fa');
 // main system configuration
 require '../../../sysconfig.inc.php';
 // IP based access limitation
-require LIB.'ip_based_access.inc.php';
+require LIB . 'ip_based_access.inc.php';
 do_checkIP('smc');
 do_checkIP('smc-membership');
 // start the session
-require SB.'admin/default/session.inc.php';
-require SB.'admin/default/session_check.inc.php';
-require SIMBIO.'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
-require SIMBIO.'simbio_GUI/table/simbio_table.inc.php';
-require SIMBIO.'simbio_FILE/simbio_file_upload.inc.php';
+require SB . 'admin/default/session.inc.php';
+require SB . 'admin/default/session_check.inc.php';
+require SIMBIO . 'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
+require SIMBIO . 'simbio_GUI/table/simbio_table.inc.php';
+require SIMBIO . 'simbio_FILE/simbio_file_upload.inc.php';
 require MDLBS . '/bibliography/biblio_utils.inc.php';
 
 // privileges checking
@@ -52,25 +54,38 @@ $can_read = utility::havePrivilege('membership', 'r');
 $can_write = utility::havePrivilege('membership', 'w');
 
 if (!$can_read) {
-    die('<div class="errorBox">'.__('You don\'t have enough privileges to access this area!').'</div>');
+    die('<div class="errorBox">' . __('You don\'t have enough privileges to access this area!') . '</div>');
 }
 
-if (isset($_GET['action']) && $_GET['action'] === 'download_sample')
-{
-  $spreadsheet = new Spreadsheet();
-  $spreadsheet->getActiveSheet()->fromArray([[
-    'member_id','member_name','gender','member_type_name',
-    'member_email','member_address','postal_code',
-    'inst_name','is_new','member_image','pin','member_phone',
-    'member_fax','member_since_date','register_date','expire_date',
-    'birth_date','member_notes','mpasswd'
-  ]], null, 'A1');
+if (isset($_GET['action']) && $_GET['action'] === 'download_sample') {
+    $spreadsheet = new Spreadsheet();
+    $spreadsheet->getActiveSheet()->fromArray([[
+        'member_id',
+        'member_name',
+        'gender',
+        'member_type_name',
+        'member_email',
+        'member_address',
+        'postal_code',
+        'inst_name',
+        'is_new',
+        'member_image',
+        'pin',
+        'member_phone',
+        'member_fax',
+        'member_since_date',
+        'register_date',
+        'expire_date',
+        'birth_date',
+        'member_notes',
+        'mpasswd'
+    ]], null, 'A1');
 
-  header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  header('Content-Disposition: attachment;filename="member_sample_import.xlsx"');
-  header('Cache-Control: max-age=0');
-  (new Xlsx($spreadsheet))->save('php://output');
-  exit;
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="member_sample_import.xlsx"');
+    header('Cache-Control: max-age=0');
+    (new Xlsx($spreadsheet))->save('php://output');
+    exit;
 }
 
 
@@ -78,18 +93,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_sample')
 $max_chars = 4096;
 
 if (isset($_POST['doImport'])) {
-    if ( empty($_FILES['importFile']['name']) && !isset($_SESSION['csv']['name']) ) {
+    if (empty($_FILES['importFile']['name']) && !isset($_SESSION['csv']['name'])) {
         utility::jsToastr(__('Import Tool'), __('No XLSX file selected to import, please choose XLSX file first!'), 'error');
         exit();
     }
 
     // create upload object
     $files_disk = Storage::files();
-    
+
     // check for form validity
     if (!isset($_POST['process'])) {
 
-        if (empty($_POST['fieldSep']) OR empty($_POST['fieldEnc'])) {
+        if (empty($_POST['fieldSep']) or empty($_POST['fieldEnc'])) {
             utility::jsToastr(__('Import Tool'), __('Required fields (*)  must be filled correctly!'), 'error');
             exit();
         }
@@ -98,13 +113,13 @@ if (isset($_POST['doImport'])) {
         $_SESSION['csv'] = [];
         $_SESSION['csv']['header'] = false;
         $_SESSION['csv']['name'] = md5($_FILES['importFile']['name'] . date('this'));
-        
+
         if (!$files_disk->isExists('temp')) $files_disk->makeDirectory('temp');
 
         if ($files_disk->isExists('temp' . DS . $_SESSION['csv']['name'])) {
             $files_disk->delete('temp' . DS . $_SESSION['csv']['name']);
         }
-        
+
         // set csv format
         $_SESSION['csv']['format'] = [
             'recordNum' => intval($_POST['recordNum']),
@@ -115,25 +130,23 @@ if (isset($_POST['doImport'])) {
 
         $_SESSION['csv']['section'] = 'membership';
         $_SESSION['csv']['action'] = $_SERVER['PHP_SELF'];
-        $_SESSION['csv']['password'] = (int)($_POST['password'][0]??0);
+        $_SESSION['csv']['password'] = (int)($_POST['password'][0] ?? 0);
         if (isset($_POST['header'])) $_SESSION['csv']['header'] = true;
 
         // create upload object
-        $spreadsheet_upload = $files_disk->upload('importFile', function($files) use($sysconf) {
+        $spreadsheet_upload = $files_disk->upload('importFile', function ($files) use ($sysconf) {
             // Extension check
             $files->isExtensionAllowed(['.xlsx']);
 
             // File size check
-            $files->isLimitExceeded($sysconf['max_upload']*1024);
+            $files->isLimitExceeded($sysconf['max_upload'] * 1024);
 
             // destroy it if failed
             if (!empty($files->getError())) $files->destroyIfFailed();
-
         })->as('temp' . DS . $_SESSION['csv']['name']);
 
-        if (!$spreadsheet_upload->getUploadStatus())
-        {
-            toastr(__('Upload failed! Only XLSX files are allowed or the size is more than').($sysconf['max_upload']/1024).' MB')->error(__('Import Tool'));
+        if (!$spreadsheet_upload->getUploadStatus()) {
+            toastr(__('Upload failed! Only XLSX files are allowed or the size is more than') . ($sysconf['max_upload'] / 1024) . ' MB')->error(__('Import Tool'));
             exit;
         }
 
@@ -151,17 +164,21 @@ if (isset($_POST['doImport'])) {
         // Redirect content
         redirect()->simbioAJAX(MWB . 'bibliography/import_preview.php');
     } else {
+        // set PHP time limit
+        set_time_limit(0);
+        // set ob implicit flush
+        ob_implicit_flush();
         $row_count = 0;
         // check for import setting
         $record_num = intval($_SESSION['csv']['format']['recordNum']);
         $field_enc = trim($_SESSION['csv']['format']['fieldEnc']);
         $field_sep = trim($_SESSION['csv']['format']['fieldSep']);
         $record_offset = intval($_SESSION['csv']['format']['recordOffset']);
-        $record_offset = $record_offset-1;
+        $record_offset = $record_offset - 1;
         // get current datetime
         $start_time = time();
         $curr_datetime = date('Y-m-d H:i:s');
-        $curr_datetime = '\''.$curr_datetime.'\'';
+        $curr_datetime = '\'' . $curr_datetime . '\'';
         // foreign key id cache
         $mtype_id_cache = array();
         // read file line by line
@@ -196,7 +213,7 @@ if (isset($_POST['doImport'])) {
 
             while (!feof($file)) {
                 // record count
-                if ($record_num > 0 AND $row_count == $record_num) {
+                if ($record_num > 0 and $row_count == $record_num) {
                     break;
                 }
                 // skip first line if it is column header
@@ -219,13 +236,13 @@ if (isset($_POST['doImport'])) {
                 if ($field) {
                     // pre-process some fields
                     $field[3] = utility::getID($dbs, 'mst_member_type', 'member_type_id', 'member_type_name', $field[3], $mtype_id_cache);
-                    $field[17] = ( isset($field[18]) && !empty($field[17]) ) ? $field[17] : null;
-                    
+                    $field[17] = (isset($field[18]) && !empty($field[17])) ? $field[17] : null;
+
                     // if last field is password field, hash it
                     $withPassword = isset($_SESSION['csv']['password']) && $_SESSION['csv']['password'] == 1;
                     $isPasswordValid = isset($field[18]) && !empty($field[18]);
                     $field[18] = ($withPassword && $isPasswordValid) ? password_hash($field[18], PASSWORD_BCRYPT) : null;
-                    
+
                     // remove extra fields
                     array_splice($field, 19, 10);
 
@@ -295,11 +312,11 @@ if (isset($_POST['doImport'])) {
                     */
                     if ($state) {
                         VarDumper::dump(
-                            str_replace('{member}', $field[1]??'?', __('Success importing member data : {member}'))
+                            str_replace('{member}', $field[1] ?? '?', __('Success importing member data : {member}'))
                         );
 
                         $row_count++;
-                        importProgress(round($row_count/$lineNumber * 100));
+                        importProgress(round($row_count / $lineNumber * 100));
                         usleep(2500);
                     }
                 }
@@ -329,9 +346,9 @@ if (isset($_POST['doImport'])) {
         unset($_SESSION['csv']);
 
         $end_time = time();
-        $import_time_sec = $end_time-$start_time;
-        writeLog('staff', $_SESSION['uid'], 'membership', 'Importing '.$inserted_row.' members data from file : '.$fileName, 'Import', 'Add');
-        $label = str_replace(['{row_count}','{time_to_finish}'], [$inserted_row, $import_time_sec], __('Success imported <strong>{row_count}</strong> title in <strong>{time_to_finish}</strong> second'));
+        $import_time_sec = $end_time - $start_time;
+        writeLog('staff', $_SESSION['uid'], 'membership', 'Importing ' . $inserted_row . ' members data from file : ' . $fileName, 'Import', 'Add');
+        $label = str_replace(['{row_count}', '{time_to_finish}'], [$inserted_row, $import_time_sec], __('Success imported <strong>{row_count}</strong> title in <strong>{time_to_finish}</strong> second'));
         exit(<<<HTML
         <script>
         parent.\$('.infoBox').html('{$label}')
@@ -343,27 +360,28 @@ if (isset($_POST['doImport'])) {
 
 ?>
 <div class="menuBox">
-<div class="menuBoxInner importIcon">
-    <div class="per_title">
-    	<h2><?php echo __('Import Data'); ?></h2>
-    </div>
-    <div class="sub_section">
-	    <div class="btn-group">
-            <a href="<?php echo MWB; ?>membership/index.php" class="btn btn-default"><?php echo __('Member List'); ?></a>
+    <div class="menuBoxInner importIcon">
+        <div class="per_title">
+            <h2><?php echo __('Import Data'); ?></h2>
+        </div>
+        <div class="sub_section">
+            <div class="btn-group">
+                <a href="<?php echo MWB; ?>membership/index.php" class="btn btn-default"><?php echo __('Member List'); ?></a>
+            </div>
+        </div>
+        <div class="infoBox">
+            <?php echo __('Import for members data from XLSX file'); ?>
+            &nbsp;<a href="<?= $_SERVER['PHP_SELF'] ?>?action=download_sample" class="s-btn btn btn-secondary notAJAX"><?= __('Download Sample') ?></a>
         </div>
     </div>
-    <div class="infoBox">
-    <?php echo __('Import for members data from XLSX file'); ?>
-    &nbsp;<a href="<?= $_SERVER['PHP_SELF'] ?>?action=download_sample" class="s-btn btn btn-secondary notAJAX"><?= __('Download Sample') ?></a>
-	</div>
 </div>
-</div>
-<div id="importInfo" class="infoBox" style="display: none;">&nbsp;</div><div id="importError" class="errorBox" style="display: none;">&nbsp;</div>
+<div id="importInfo" class="infoBox" style="display: none;">&nbsp;</div>
+<div id="importError" class="errorBox" style="display: none;">&nbsp;</div>
 <?php
 
 // create new instance
-$form = new simbio_form_table_AJAX('mainForm', $_SERVER['PHP_SELF'].'', 'post');
-$form->submit_button_attr = 'name="doImport" value="'.__('Process').'" class="s-btn btn btn-primary"';
+$form = new simbio_form_table_AJAX('mainForm', $_SERVER['PHP_SELF'] . '', 'post');
+$form->submit_button_attr = 'name="doImport" value="' . __('Process') . '" class="s-btn btn btn-primary"';
 
 // form table attributes
 $form->table_attr = 'id="dataList" class="s-table table"';
@@ -375,33 +393,33 @@ $form->table_content_attr = 'class="alterCell2"';
 $str_input  = '<div class="container-fluid">';
 $str_input .= '<div class="row">';
 $str_input .= '<div class="custom-file col-6">';
-$str_input .= simbio_form_element::textField('file', 'importFile','','class="custom-file-input" accept=".xlsx" required');
+$str_input .= simbio_form_element::textField('file', 'importFile', '', 'class="custom-file-input" accept=".xlsx" required');
 $str_input .= '<label class="custom-file-label" for="customFile">Choose file</label>';
 $str_input .= '</div>';
 $str_input .= '<div class="col">';
-$str_input .= '<div class="mt-2">Maximum '.$sysconf['max_upload'].' KB</div>';
+$str_input .= '<div class="mt-2">Maximum ' . $sysconf['max_upload'] . ' KB</div>';
 $str_input .= '</div>';
 $str_input .= '</div>';
 $str_input .= '</div>';
-$form->addAnything(__('File To Import').'*', $str_input);
+$form->addAnything(__('File To Import') . '*', $str_input);
 // field separator
-$form->addTextField('text', 'fieldSep', __('Field Separator').'*', ''.htmlentities(',').'', 'style="width: 10%;" class="form-control"');
+$form->addTextField('text', 'fieldSep', __('Field Separator') . '*', '' . htmlentities(',') . '', 'style="width: 10%;" class="form-control"');
 //  field enclosed
-$form->addTextField('text', 'fieldEnc', __('Field Enclosed With').'*', ''.htmlentities('"').'', 'style="width: 10%;" class="form-control"');
+$form->addTextField('text', 'fieldEnc', __('Field Enclosed With') . '*', '' . htmlentities('"') . '', 'style="width: 10%;" class="form-control"');
 // number of records to import
 $form->addTextField('text', 'recordNum', __('Number of Records To Export (0 for all records)'), '0', 'style="width: 10%;" class="form-control"');
 // records offset
 $form->addTextField('text', 'recordOffset', __('Start From Record'), '1', 'style="width: 10%;" class="form-control"');
 // header (column name)
-$form->addCheckBox('header', __('The first row is columns names'), array( array('1', __('Yes')) ), '');
+$form->addCheckBox('header', __('The first row is columns names'), array(array('1', __('Yes'))), '');
 // password (last column)
-$form->addCheckBox('password', __('The last column is password'), array( array('1', __('Yes')) ), '');
+$form->addCheckBox('password', __('The last column is password'), array(array('1', __('Yes'))), '');
 // output the form
 echo $form->printOut();
 ?>
 <script>
-$(document).on('change', '.custom-file-input', function () {
-    let fileName = $(this).val().replace(/\\/g, '/').replace(/.*\//, '');
-    $(this).parent('.custom-file').find('.custom-file-label').text(fileName);
-});
+    $(document).on('change', '.custom-file-input', function() {
+        let fileName = $(this).val().replace(/\\/g, '/').replace(/.*\//, '');
+        $(this).parent('.custom-file').find('.custom-file-label').text(fileName);
+    });
 </script>
