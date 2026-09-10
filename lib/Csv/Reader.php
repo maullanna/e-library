@@ -69,9 +69,6 @@ class Reader
             // bypass some header
             if (in_array(trim($csv[0]), ['item_code','title','member_id'])) continue;
 
-            if (isset($csv[12])) $csv[12] = strlen($csv[12]) > 50 ? '<div style="height: 250px; overflow-y: auto;">' . $csv[12] . '</div>' : strlen($csv[12]);
-
-            
             $row++;
             
             if (is_callable($formatter)) {

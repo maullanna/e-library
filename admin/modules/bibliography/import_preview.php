@@ -150,9 +150,16 @@ if ($files_disk->isExists($csv_file)) :
                     $table->appendTableRow(explode(',', $header));
 
                     // iterate field data
-                    $reader->each(function (&$field, $row, $index, $column_value) use ($table) {
+                    $isBiblioSection = $_SESSION['csv']['section'] === 'biblio';
+                    $reader->each(function (&$field, $row, $index, $column_value) use ($table, $isBiblioSection) {
                         // set cell attribute
-                        if ($index != 12) $field[$index] = htmlspecialchars($field[$index]);
+                        $field[$index] = htmlspecialchars($field[$index] ?? '');
+
+                        // for the biblio notes column only, wrap long text in a
+                        // scrollable box for display purposes only (does not affect stored data)
+                        if ($isBiblioSection && $index === 12 && strlen($field[$index]) > 50) {
+                            $field[$index] = '<div style="height: 250px; overflow-y: auto;">' . $field[$index] . '</div>';
+                        }
 
                         $table->setCellAttr($row, $index + 1, 'class="alterCell" valign="top" style="width: ' . strlen($column_value) . 'px;"');
                     });

@@ -300,7 +300,7 @@ if (isset($_POST['doImport'])) {
         importProgress(round($row / $lineNumber * 100));
         usleep(2500);
       });
-    } catch (Exception $e) {
+    } catch (\Throwable $e) {
       // Reset session
       unset($_SESSION['csv']);
       $errorMessage = $e->getMessage();

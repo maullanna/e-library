@@ -312,7 +312,7 @@ if (isset($_POST['doImport'])) {
                     }
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             // Reset session
             unset($_SESSION['csv']);
             $errorMessage = $e->getMessage();
