@@ -41,10 +41,10 @@ $salt = $dbs->escape_string($_GET['salt']);
 $url = $_SERVER['SCRIPT_NAME'].'?'.$_SERVER['QUERY_STRING'];
 
 // validate current salt and email
-$query = sprintf("SELECT user_id,realname FROM user WHERE email='%s' AND forgot='%s'", $email, $salt);
+$query = sprintf("SELECT user_id,realname FROM user WHERE email='%s' AND forgot='%s' AND forgot != ''", $email, $salt);
 $_q = $dbs->query($query);
 $file_d = $_q->fetch_assoc();
-$_uname = $file_d['realname'];
+$_uname = $file_d['realname'] ?? '';
 
 
 // update password
