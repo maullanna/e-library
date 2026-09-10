@@ -21,10 +21,8 @@
 /* Item Import section */
 use SLiMS\Filesystems\Storage;
 use SLiMS\DB;
-use SLiMS\Csv\Writer;
-use SLiMS\Csv\Reader;
-use SLiMS\Csv\Row;
 use SLiMS\Debug\VarDumper;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 // key to authenticate
 define('INDEX_AUTH', '1');
@@ -54,17 +52,12 @@ if (!$can_read) {
 
 if (isset($_GET['action']) && $_GET['action'] === 'download_sample')
 {
-  // Create Csv instance
-  $csv = new Writer;
-  $csv->add(new Row([
+  downloadStyledSampleXlsx('biblio_item_sample_import', [
     'item_code','call_number','coll_type_name','inventory_code',
     'received_date','supplier_name','order_no','location_name',
     'order_date','item_status_name','site','source','invoice',
     'price','price_currency','invoice_date','input_date','last_update','title'
-  ]));
-
-  // Download CSV
-  $csv->download('biblio_item_sample_import');
+  ]);
 }
 
 // max chars in line for file operations
@@ -77,8 +70,8 @@ $expected_item_column_count = count($expected_item_columns);
 
 if (isset($_POST['doImport'])) {
     if ( empty($_FILES['importFile']['name']) && !isset($_SESSION['csv']['name']) ) {  
-        utility::jsToastr(__('Import Tool'), __('No CSV file selected to import, please choose CSV file first!'), 'error');
-        exit();        
+        utility::jsToastr(__('Import Tool'), __('No XLSX file selected to import, please choose XLSX file first!'), 'error');
+        exit();
     }
 
      // create upload object
@@ -115,9 +108,9 @@ if (isset($_POST['doImport'])) {
         if (isset($_POST['header'])) $_SESSION['csv']['header'] = 1;
 
         // create upload object
-        $csv_upload = $files_disk->upload('importFile', function($files) use($sysconf) {
+        $spreadsheet_upload = $files_disk->upload('importFile', function($files) use($sysconf) {
         // Extension check
-        $files->isExtensionAllowed(['.csv']);
+        $files->isExtensionAllowed(['.xlsx']);
 
         // File size check
         $files->isLimitExceeded($sysconf['max_upload']*1024);
@@ -126,12 +119,23 @@ if (isset($_POST['doImport'])) {
         if (!empty($files->getError())) $files->destroyIfFailed();
 
         })->as('temp' . DS . $_SESSION['csv']['name']);
-        
-        if (!$csv_upload->getUploadStatus())
+
+        if (!$spreadsheet_upload->getUploadStatus())
         {
-            toastr(__('Upload failed! File type not allowed or the size is more than').($sysconf['max_upload']/1024).' MB')->error(__('Import Tool'));
+            toastr(__('Upload failed! Only XLSX files are allowed or the size is more than').($sysconf['max_upload']/1024).' MB')->error(__('Import Tool'));
             exit;
         }
+
+        // convert uploaded XLSX into an internal CSV representation for processing below
+        $spreadsheetPath = SB . FLS . DS . 'temp' . DS . $_SESSION['csv']['name'] . '.xlsx';
+        $csvPath = SB . FLS . DS . 'temp' . DS . $_SESSION['csv']['name'] . '.csv';
+        $sheet = IOFactory::load($spreadsheetPath)->getActiveSheet();
+        $rows = $sheet->toArray('', false, false, false);
+        $csvHandle = fopen($csvPath, 'w');
+        foreach ($rows as $rowData) {
+            fputcsv($csvHandle, $rowData, trim($_SESSION['csv']['format']['fieldSep']), trim($_SESSION['csv']['format']['fieldEnc']));
+        }
+        fclose($csvHandle);
 
         // Redirect content
         redirect()->simbioAJAX(MWB . 'bibliography/import_preview.php');
@@ -379,6 +383,7 @@ if (isset($_POST['doImport'])) {
 
         // delete temp file
         $files_disk->delete('temp' . DS . $fileName . '.csv');
+        $files_disk->delete('temp' . DS . $fileName . '.xlsx');
 
         // Reset session
         unset($_SESSION['csv']);
@@ -402,7 +407,7 @@ if (isset($_POST['doImport'])) {
             <h2><?php echo __('Item Import tool'); ?></h2>
         </div>
         <div class="infoBox">
-            <?php echo __('Import for item data from CSV file'); ?>
+            <?php echo __('Import for item data from XLSX file'); ?>
             &nbsp;<a href="<?= $_SERVER['PHP_SELF'] ?>?action=download_sample" class="s-btn btn btn-secondary notAJAX"><?= __('Download Sample') ?></a>
         </div>
     </div>
@@ -422,7 +427,7 @@ $form->table_content_attr = 'class="alterCell2"';
 $str_input  = '<div class="container-fluid">';
 $str_input .= '<div class="row">';
 $str_input .= '<div class="custom-file col-6">';
-$str_input .= simbio_form_element::textField('file', 'importFile','','class="custom-file-input"');
+$str_input .= simbio_form_element::textField('file', 'importFile','','class="custom-file-input" accept=".xlsx" required');
 $str_input .= '<label class="custom-file-label" for="customFile">Choose file</label>';
 $str_input .= '</div>';
 $str_input .= '<div class="col">';

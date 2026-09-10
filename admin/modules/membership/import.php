@@ -25,8 +25,6 @@ use SLiMS\Filesystems\Storage;
 use SLiMS\DB;
 use SLiMS\Debug\VarDumper;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /* Member Import section */
 
@@ -58,8 +56,7 @@ if (!$can_read) {
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'download_sample') {
-    $spreadsheet = new Spreadsheet();
-    $spreadsheet->getActiveSheet()->fromArray([[
+    downloadStyledSampleXlsx('member_sample_import', [
         'member_id',
         'member_name',
         'gender',
@@ -79,13 +76,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_sample') {
         'birth_date',
         'member_notes',
         'mpasswd'
-    ]], null, 'A1');
-
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="member_sample_import.xlsx"');
-    header('Cache-Control: max-age=0');
-    (new Xlsx($spreadsheet))->save('php://output');
-    exit;
+    ]);
 }
 
 

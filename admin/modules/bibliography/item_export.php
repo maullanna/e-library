@@ -38,6 +38,7 @@ require SB.'admin/default/session.inc.php';
 require SIMBIO.'simbio_GUI/table/simbio_table.inc.php';
 require SIMBIO.'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
 require SIMBIO.'simbio_DB/simbio_dbop.inc.php';
+require __DIR__ . '/biblio_utils.inc.php';
 
 // privileges checking
 $can_read = utility::havePrivilege('bibliography', 'r');
@@ -98,6 +99,7 @@ if (isset($_POST['doExport'])) {
                 $rowNum++;
             }
             $sheet->fromArray($rows, null, 'A'.$rowNum);
+            styleExportSheet($sheet, count($rows[0] ?? $headers ?? []), isset($_POST['header']));
 
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment; filename="senayan_item_export.xlsx"');

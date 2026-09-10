@@ -263,3 +263,121 @@ function isItemExists(string $itemCode)
 
   return (bool)$state->rowCount();
 }
+
+/**
+ * Build and stream a nicely styled XLSX sample/template file
+ * with a colored, bold header row, sensible column widths,
+ * a frozen header row, and a light banded look for a few
+ * empty rows below the header so it is clear where data goes.
+ *
+ * @param string $filename    file name without extension
+ * @param array  $columns     list of column header labels
+ * @return void (exits the script after streaming the file)
+ */
+function downloadStyledSampleXlsx(string $filename, array $columns): void
+{
+  $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+  $sheet = $spreadsheet->getActiveSheet();
+  $sheet->fromArray([$columns], null, 'A1');
+
+  $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($columns));
+
+  // header styling: bold white text on a blue background
+  $sheet->getStyle('A1:' . $lastColumn . '1')->applyFromArray([
+    'font' => [
+      'bold' => true,
+      'color' => ['rgb' => 'FFFFFF'],
+    ],
+    'fill' => [
+      'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+      'startColor' => ['rgb' => '2E75B6'],
+    ],
+    'alignment' => [
+      'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+      'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+    ],
+    'borders' => [
+      'allBorders' => [
+        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+        'color' => ['rgb' => 'B7B7B7'],
+      ],
+    ],
+  ]);
+  $sheet->getRowDimension(1)->setRowHeight(22);
+
+  // light banded borders for a handful of empty data rows, so the
+  // template still looks like a proper table when opened
+  $sheet->getStyle('A2:' . $lastColumn . '11')->applyFromArray([
+    'borders' => [
+      'allBorders' => [
+        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+        'color' => ['rgb' => 'D9D9D9'],
+      ],
+    ],
+  ]);
+  for ($row = 2; $row <= 11; $row++) {
+    if ($row % 2 === 0) {
+      $sheet->getStyle('A' . $row . ':' . $lastColumn . $row)->applyFromArray([
+        'fill' => [
+          'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+          'startColor' => ['rgb' => 'F2F6FB'],
+        ],
+      ]);
+    }
+  }
+
+  // reasonable column width based on header label length
+  foreach ($columns as $index => $label) {
+    $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($index + 1);
+    $sheet->getColumnDimension($col)->setWidth(max(14, strlen($label) + 4));
+  }
+
+  // keep header visible while scrolling
+  $sheet->freezePane('A2');
+
+  header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  header('Content-Disposition: attachment;filename="' . $filename . '.xlsx"');
+  header('Cache-Control: max-age=0');
+  (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+  exit;
+}
+
+/**
+ * Apply a bold, colored header row style plus sensible column
+ * widths and a frozen header to a spreadsheet that already has
+ * its data written to it (used for the actual data exports,
+ * as opposed to the empty downloadStyledSampleXlsx() templates).
+ *
+ * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+ * @param int  $columnCount number of columns starting at A
+ * @param bool $hasHeader   whether row 1 actually contains header labels
+ * @return void
+ */
+function styleExportSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $columnCount, bool $hasHeader): void
+{
+  $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnCount);
+
+  if ($hasHeader) {
+    $sheet->getStyle('A1:' . $lastColumn . '1')->applyFromArray([
+      'font' => [
+        'bold' => true,
+        'color' => ['rgb' => 'FFFFFF'],
+      ],
+      'fill' => [
+        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+        'startColor' => ['rgb' => '2E75B6'],
+      ],
+      'alignment' => [
+        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+        'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+      ],
+    ]);
+    $sheet->getRowDimension(1)->setRowHeight(22);
+    $sheet->freezePane('A2');
+  }
+
+  for ($i = 1; $i <= $columnCount; $i++) {
+    $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+    $sheet->getColumnDimension($col)->setAutoSize(true);
+  }
+}

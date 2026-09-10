@@ -28,8 +28,6 @@ use SLiMS\Csv\Reader;
 use SLiMS\Csv\Row;
 use SLiMS\Debug\VarDumper;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 // key to authenticate
 define('INDEX_AUTH', '1');
@@ -66,8 +64,7 @@ if ($sysconf['index']['type'] == 'index') {
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'download_sample') {
-  $spreadsheet = new Spreadsheet();
-  $spreadsheet->getActiveSheet()->fromArray([[
+  downloadStyledSampleXlsx('biblio_sample_import', [
     'title',
     'gmd_name',
     'edition',
@@ -86,13 +83,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_sample') {
     'authors',
     'topics',
     'item_code'
-  ]], null, 'A1');
-
-  header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  header('Content-Disposition: attachment;filename="biblio_sample_import.xlsx"');
-  header('Cache-Control: max-age=0');
-  (new Xlsx($spreadsheet))->save('php://output');
-  exit;
+  ]);
 }
 
 // max chars in line for file operations
@@ -246,7 +237,7 @@ if (isset($_POST['doImport'])) {
         // safety net: skip a header row even if the "header" checkbox was not checked
         if (strcasecmp((string) ($fields[0] ?? ''), 'title') === 0) {
           $row++;
-          importProgress(round($row/$lineNumber * 100));
+          importProgress(round($row / $lineNumber * 100));
           return;
         }
 
