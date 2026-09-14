@@ -58,6 +58,7 @@ class simbio_dbop extends simbio
     public function insert($str_table, $array_data)
     {
         if (!is_array($array_data) OR count($array_data) == 0) {
+            $this->error = 'No data was provided to insert (empty or invalid data array)';
             return false;
         }
 
@@ -121,6 +122,7 @@ class simbio_dbop extends simbio
     {
         // check if the first argumen is an array
         if (!is_array($array_update)) {
+            $this->error = 'No data was provided to update (invalid data array)';
             return false;
         } else {
             $_set = '';
