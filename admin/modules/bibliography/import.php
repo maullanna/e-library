@@ -131,6 +131,7 @@ if (isset($_POST['doImport'])) {
     $spreadsheet_upload = $files_disk->upload('importFile', function ($files) use ($sysconf) {
       $files->isExtensionAllowed(['.xlsx']);
       $files->isLimitExceeded($sysconf['max_upload'] * 1024);
+      $files->isVirusFree();
       if (!empty($files->getError())) $files->destroyIfFailed();
     })->as('temp' . DS . $_SESSION['csv']['name']);
 

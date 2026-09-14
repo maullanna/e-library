@@ -67,6 +67,38 @@ trait Guard
     }
 
     /**
+     * Scan the uploaded file for viruses/malware using ClamAV (clamdscan).
+     * Fails closed: if the scanner itself is unavailable or errors out,
+     * the upload is rejected rather than silently skipping the scan.
+     *
+     * @return boolean
+     */
+    public function isVirusFree()
+    {
+        if (!$this->uploadStatus) return false;
+
+        $filePath = $this->path . $this->uploadedFile;
+        $output = [];
+        $returnCode = null;
+        exec('clamdscan --no-summary --infected ' . escapeshellarg($filePath) . ' 2>&1', $output, $returnCode);
+
+        if ($returnCode === 1) {
+            // 1 = infected file found
+            error_log('Virus scan REJECTED upload: ' . $filePath . ' - ' . implode(' ', $output));
+            $this->uploadStatus = false;
+            $this->error = __('The uploaded file was flagged as a security threat and was rejected.');
+        } else if ($returnCode !== 0) {
+            // anything other than 0 (clean) or 1 (infected) means the
+            // scanner itself failed - reject rather than allow unscanned files through
+            error_log('Virus scan FAILED to run (fail-closed, upload rejected): ' . $filePath . ' - ' . implode(' ', $output));
+            $this->uploadStatus = false;
+            $this->error = __('Could not verify the file is safe. Please try again or contact the administrator.');
+        }
+
+        return $this->uploadStatus;
+    }
+
+    /**
      * File image check
      * @return boolean
      */

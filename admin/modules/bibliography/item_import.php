@@ -115,6 +115,9 @@ if (isset($_POST['doImport'])) {
         // File size check
         $files->isLimitExceeded($sysconf['max_upload']*1024);
 
+        // Virus/malware scan
+        $files->isVirusFree();
+
         // destroy it if failed
         if (!empty($files->getError())) $files->destroyIfFailed();
 

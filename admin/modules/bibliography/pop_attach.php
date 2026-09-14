@@ -90,6 +90,9 @@ if (isset($_POST['upload']) AND trim(strip_tags($_POST['fileTitle'])) != '') {
       // File size check
       $repository->isLimitExceeded($sysconf['max_upload']*1024);
 
+      // Virus/malware scan
+      $repository->isVirusFree();
+
       // destroy it if failed
       if (!empty($repository->getError())) $repository->destroyIfFailed();
 
