@@ -100,7 +100,8 @@ class simbio_dbop extends simbio
             $this->affected_rows = $this->obj_db->affected_rows;
         } catch (Exception $e) {
             // if an error occur
-            $this->error = isDev() ? $e->getMessage() . ' : ' . $this->sql_string : ''; 
+            error_log('simbio_dbop error: ' . $e->getMessage() . ' : ' . $this->sql_string);
+            $this->error = $e->getMessage();
             return false; 
         }
 
@@ -153,7 +154,8 @@ class simbio_dbop extends simbio
             $this->affected_rows = $this->obj_db->affected_rows;
         } catch (Exception $e) {
              // if an error occur
-             $this->error = isDev() ? $e->getMessage() . ' : ' . $this->sql_string : ''; 
+             error_log('simbio_dbop error: ' . $e->getMessage() . ' : ' . $this->sql_string);
+            $this->error = $e->getMessage();
              return false; 
         }
 
@@ -178,7 +180,8 @@ class simbio_dbop extends simbio
             $this->affected_rows = $this->obj_db->affected_rows;
         } catch (Exception $e) {
             // if an error occur
-            $this->error = isDev() ? $e->getMessage() . ' : ' . $this->sql_string : ''; 
+            error_log('simbio_dbop error: ' . $e->getMessage() . ' : ' . $this->sql_string);
+            $this->error = $e->getMessage();
             return false; 
         }
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * admin_logon class
  * Class for user authentication
@@ -49,7 +50,8 @@ class admin_logon
      * @param   string  $str_auth_method
      * @return  void
      */
-    public function __construct($str_username, $str_password, $str_auth_method = 'native') {
+    public function __construct($str_username, $str_password, $str_auth_method = 'native')
+    {
         $this->username = trim($str_username);
         $this->password = trim($str_password);
         $this->auth_method = $str_auth_method;
@@ -62,9 +64,10 @@ class admin_logon
      * @param   object  $obj_db
      * @return  void
      */
-    public function adminValid($obj_db) {
+    public function adminValid($obj_db)
+    {
         $this->obj_db = $obj_db;
-        $_check_login = call_user_func(array($this, $this->auth_method.'Login'));
+        $_check_login = call_user_func(array($this, $this->auth_method . 'Login'));
         // check if the user exist in database
         if (!$_check_login) {
             return false;
@@ -79,9 +82,9 @@ class admin_logon
         }
 
         // update the last login time
-        $obj_db->query("UPDATE user SET last_login='".date("Y-m-d H:i:s")."',
-            last_login_ip='".ip()."'
-            WHERE user_id=".$this->user_info['user_id']);
+        $obj_db->query("UPDATE user SET last_login='" . date("Y-m-d H:i:s") . "',
+            last_login_ip='" . ip() . "'
+            WHERE user_id=" . $this->user_info['user_id']);
 
         return true;
     }
@@ -96,9 +99,9 @@ class admin_logon
         $_SESSION['realname'] = $this->user_info['realname'];
         //modified by Eddy Subratha
         if (!empty($this->user_info['user_image'])) {
-            $_SESSION['upict'] = $this->user_info['user_image'];                    
+            $_SESSION['upict'] = $this->user_info['user_image'];
         } else {
-            $_SESSION['upict'] = 'person.png';        
+            $_SESSION['upict'] = 'person.png';
         }
         if (!empty($this->user_info['groups'])) {
             $_SESSION['groups'] = @unserialize($this->user_info['groups']);
@@ -156,7 +159,7 @@ class admin_logon
         } else {
             $server_addr = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : (isset($_SERVER['LOCAL_ADDR']) ? $_SERVER['LOCAL_ADDR'] : gethostbyname($_SERVER['SERVER_NAME']));
         }
-        $_SESSION['checksum'] = defined('UCS_BASE_DIR')?md5($server_addr.UCS_BASE_DIR.'admin'):md5($server_addr.SB.'admin');
+        $_SESSION['checksum'] = defined('UCS_BASE_DIR') ? md5($server_addr . UCS_BASE_DIR . 'admin') : md5($server_addr . SB . 'admin');
     }
 
     function setUserInfo($user_info)
@@ -176,14 +179,15 @@ class admin_logon
      *
      * @return  boolean
      */
-    protected function ldapLogin() {
+    protected function ldapLogin()
+    {
         $ldap_configs = config('auth.user');
         if (!function_exists('ldap_connect')) {
             $this->errors = 'LDAP library is not installed yet!';
             return false;
         }
         // connect to Directory Server
-        $_ds = $ldap_configs['ldap_port']?ldap_connect($ldap_configs['ldap_server'], $ldap_configs['ldap_port']):ldap_connect($ldap_configs['ldap_server']);
+        $_ds = $ldap_configs['ldap_port'] ? ldap_connect($ldap_configs['ldap_server'], $ldap_configs['ldap_port']) : ldap_connect($ldap_configs['ldap_server']);
 
         // check LDAP options
         if ($ldap_configs['ldap_options']) {
@@ -199,9 +203,11 @@ class admin_logon
         }
 
         // binding
-        $_bind = @ldap_bind($_ds,
+        $_bind = @ldap_bind(
+            $_ds,
             str_ireplace('#loginUserName', $this->username, $ldap_configs['ldap_bind_dn']),
-            $this->password);
+            $this->password
+        );
 
         if (!$_bind) {
             $this->errors = 'Failed to bind to directory server!';
@@ -224,7 +230,7 @@ class admin_logon
             $_username = $_entries[0][$ldap_configs['userid_field']][0];
             // check if User data exists in database
             $_check_q = $this->obj_db->query("SELECT u.user_id, u.username, u.realname, u.groups
-                FROM user AS u WHERE u.username='".$_username."'");
+                FROM user AS u WHERE u.username='" . $_username . "'");
             if ($_check_q->num_rows < 1) {
                 $this->errors = 'You don\'t have enough privileges to enter this section!';
                 return false;
@@ -247,7 +253,8 @@ class admin_logon
      *
      * @return  boolean
      */
-    protected function nativeLogin() {
+    protected function nativeLogin()
+    {
         /*
         $_sql_librarian_login = sprintf("SELECT
             u.user_id, u.username,
@@ -262,19 +269,19 @@ class admin_logon
             FROM user AS u
             WHERE u.username='%s'", $this->obj_db->escape_string($this->username));
         $_user_q = $this->obj_db->query($_sql_librarian_login);
-    
+
         // error check
         if ($this->obj_db->error) {
-            $this->errors = 'Failed to query user data from database with error: '.$this->obj_db->error;
+            $this->errors = 'Failed to query user data from database with error: ' . $this->obj_db->error;
             return false;
         }
-        
+
         // result check
-        if ($_user_q->num_rows < 1) {            
+        if ($_user_q->num_rows < 1) {
             $this->errors = 'Username not exists in database!';
             return false;
         }
-        
+
         // get user info
         $this->user_info = $_user_q->fetch_assoc();
         // verify password hash
@@ -296,7 +303,8 @@ class admin_logon
      *
      * @return  boolean
      */
-    protected function nativeLoginMd5() {
+    protected function nativeLoginMd5()
+    {
         $_sql_librarian_login = sprintf("SELECT
             u.user_id, u.username,
             u.realname, u.groups, u.2fa
@@ -306,7 +314,7 @@ class admin_logon
         $_user_q = $this->obj_db->query($_sql_librarian_login);
         // error check
         if ($this->obj_db->error) {
-            $this->errors = 'Failed to query user data from database with error: '.$this->obj_db->error;
+            $this->errors = 'Failed to query user data from database with error: ' . $this->obj_db->error;
             return false;
         }
         // result check
@@ -327,12 +335,15 @@ class admin_logon
         $this->obj_db = $obj_db;
 
         if ($this->nativeLoginMd5()) {
-            $_sql_update_password = sprintf("UPDATE user SET passwd = '%s', last_update = CURDATE() WHERE username = '%s'",
-                password_hash($new_passwd, PASSWORD_BCRYPT), $this->username);
+            $_sql_update_password = sprintf(
+                "UPDATE user SET passwd = '%s', last_update = CURDATE() WHERE username = '%s'",
+                password_hash($new_passwd, PASSWORD_BCRYPT),
+                $this->username
+            );
             $_update_q = $this->obj_db->query($_sql_update_password);
             // error check
             if ($this->obj_db->error) {
-                $this->errors = 'Failed to query user data from database with error: '.$this->obj_db->error;
+                $this->errors = 'Failed to query user data from database with error: ' . $this->obj_db->error;
                 return false;
             }
             return true;

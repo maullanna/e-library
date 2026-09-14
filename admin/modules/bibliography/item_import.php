@@ -42,9 +42,6 @@ require SIMBIO.'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
 require SIMBIO.'simbio_FILE/simbio_file_upload.inc.php';
 require __DIR__ . '/biblio_utils.inc.php';
 
-// TEMP DIAGNOSTIC: log every request that reaches this point, before anything else can fail
-@file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] entry: POST keys=' . implode(',', array_keys($_POST)) . ' | session csv=' . var_export($_SESSION['csv'] ?? 'NOT SET', true) . PHP_EOL, FILE_APPEND);
-
 // privileges checking
 $can_read = utility::havePrivilege('bibliography', 'r');
 $can_write = utility::havePrivilege('bibliography', 'w');
@@ -155,9 +152,6 @@ if (isset($_POST['doImport'])) {
         $start_time = time();
         $row_count = 0;
 
-        // TEMP DIAGNOSTIC: log session state to help debug intermittent 500 errors during import processing
-        error_log('item_import DIAGNOSTIC: session csv = ' . var_export($_SESSION['csv'] ?? 'NOT SET', true));
-
         // check for import setting
         $record_num = intval($_SESSION['csv']['format']['recordNum']);
         $field_enc = trim($_SESSION['csv']['format']['fieldEnc']);
@@ -178,9 +172,6 @@ if (isset($_POST['doImport'])) {
         $fileNumber = $files_disk->readStream('temp' . DS . $_SESSION['csv']['name'] . '.csv');
         $n = 0;
 
-        // TEMP DIAGNOSTIC checkpoint A
-        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint A: file=' . var_export($file, true) . ' fileNumber=' . var_export($fileNumber, true) . PHP_EOL, FILE_APPEND);
-
         // get total line
         $lineNumber = 0;
         while (!feof($fileNumber)) {
@@ -189,13 +180,8 @@ if (isset($_POST['doImport'])) {
             $lineNumber++;
         }
 
-        // TEMP DIAGNOSTIC checkpoint B
-        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint B: lineNumber=' . $lineNumber . PHP_EOL, FILE_APPEND);
-
         try {
             $pdo = DB::getInstance();
-            // TEMP DIAGNOSTIC checkpoint C
-            @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint C: pdo=' . var_export($pdo, true) . PHP_EOL, FILE_APPEND);
             $state_insert = $pdo->prepare(<<<SQL
                 INSERT IGNORE INTO item (biblio_id, item_code, call_number, coll_type_id,
                     inventory_code, received_date, supplier_id,
@@ -204,8 +190,6 @@ if (isset($_POST['doImport'])) {
                     input_date, last_update)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             SQL);
-            // TEMP DIAGNOSTIC checkpoint D
-            @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint D: state_insert prepared=' . var_export($state_insert !== false, true) . PHP_EOL, FILE_APPEND);
 
             $state_update = $pdo->prepare(<<<SQL
                 UPDATE item SET call_number = ?, coll_type_id = ?,
@@ -243,9 +227,6 @@ if (isset($_POST['doImport'])) {
 
                         $field = array_pad($field, $expected_item_column_count, null);
 
-                        // TEMP DIAGNOSTIC checkpoint E
-                        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint E: row_count=' . $row_count . ' field=' . var_export($field, true) . PHP_EOL, FILE_APPEND);
-
                         // preprocess fields
                         $item_code = trim((string) ($field[0] ?? ''));
                         $title = trim((string) ($field[18] ?? ''));
@@ -281,9 +262,6 @@ if (isset($_POST['doImport'])) {
                         $field[17] = !empty($field[17])?$field[17]:date('Y-m-d H:i:s');
                         $field[13] = !empty($field[13])?$field[13]:0.0;
 
-                        // TEMP DIAGNOSTIC checkpoint F
-                        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint F: after getID calls, field=' . var_export($field, true) . PHP_EOL, FILE_APPEND);
-
                         // get biblio_id
                         $b_q = $dbs->query(sprintf("select biblio_id from biblio where title = '%s'", $dbs->real_escape_string($title)));
                         if($b_q->num_rows < 1) {
@@ -296,11 +274,12 @@ if (isset($_POST['doImport'])) {
                         $b_d = $b_q->fetch_row();
                         $biblio_id = $b_d[0];
 
-                        // TEMP DIAGNOSTIC checkpoint G
-                        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint G: biblio_id=' . var_export($biblio_id, true) . ' isItemExists=' . var_export(isItemExists($item_code), true) . PHP_EOL, FILE_APPEND);
-
                         // sql insert string
                         if (!isItemExists($item_code)) {
+                            // title (index 18) is only needed for the biblio_id lookup above,
+                            // it is not a column in the item table and must not be bound
+                            unset($field[18]);
+                            $field = array_values($field);
                             // prepend biblio id
                             array_unshift($field, $biblio_id);
                             // echo "<pre>".print_r($field, true)."<pre>";
