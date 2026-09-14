@@ -8,7 +8,7 @@ if ($inSimbioRequest === false):
 <!DOCTYPE Html>
 <html>
     <head>
-        <title><?= $title??'Oops Error' ?></title>
+        <title>Error</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
         <style><?= file_get_contents(SB . 'css/bootstrap.min.css') ?></style>
         <style>
