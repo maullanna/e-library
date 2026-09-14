@@ -178,6 +178,9 @@ if (isset($_POST['doImport'])) {
         $fileNumber = $files_disk->readStream('temp' . DS . $_SESSION['csv']['name'] . '.csv');
         $n = 0;
 
+        // TEMP DIAGNOSTIC checkpoint A
+        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint A: file=' . var_export($file, true) . ' fileNumber=' . var_export($fileNumber, true) . PHP_EOL, FILE_APPEND);
+
         // get total line
         $lineNumber = 0;
         while (!feof($fileNumber)) {
@@ -186,8 +189,13 @@ if (isset($_POST['doImport'])) {
             $lineNumber++;
         }
 
+        // TEMP DIAGNOSTIC checkpoint B
+        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint B: lineNumber=' . $lineNumber . PHP_EOL, FILE_APPEND);
+
         try {
             $pdo = DB::getInstance();
+            // TEMP DIAGNOSTIC checkpoint C
+            @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint C: pdo=' . var_export($pdo, true) . PHP_EOL, FILE_APPEND);
             $state_insert = $pdo->prepare(<<<SQL
                 INSERT IGNORE INTO item (biblio_id, item_code, call_number, coll_type_id,
                     inventory_code, received_date, supplier_id,
@@ -196,6 +204,8 @@ if (isset($_POST['doImport'])) {
                     input_date, last_update)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             SQL);
+            // TEMP DIAGNOSTIC checkpoint D
+            @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint D: state_insert prepared=' . var_export($state_insert !== false, true) . PHP_EOL, FILE_APPEND);
 
             $state_update = $pdo->prepare(<<<SQL
                 UPDATE item SET call_number = ?, coll_type_id = ?,
