@@ -42,6 +42,9 @@ require SIMBIO.'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
 require SIMBIO.'simbio_FILE/simbio_file_upload.inc.php';
 require __DIR__ . '/biblio_utils.inc.php';
 
+// TEMP DIAGNOSTIC: log every request that reaches this point, before anything else can fail
+error_log('item_import DIAGNOSTIC entry: POST keys=' . implode(',', array_keys($_POST)) . ' | session csv=' . var_export($_SESSION['csv'] ?? 'NOT SET', true));
+
 // privileges checking
 $can_read = utility::havePrivilege('bibliography', 'r');
 $can_write = utility::havePrivilege('bibliography', 'w');
