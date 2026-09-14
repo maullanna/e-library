@@ -151,6 +151,10 @@ if (isset($_POST['doImport'])) {
         ob_implicit_flush();
         $start_time = time();
         $row_count = 0;
+
+        // TEMP DIAGNOSTIC: log session state to help debug intermittent 500 errors during import processing
+        error_log('item_import DIAGNOSTIC: session csv = ' . var_export($_SESSION['csv'] ?? 'NOT SET', true));
+
         // check for import setting
         $record_num = intval($_SESSION['csv']['format']['recordNum']);
         $field_enc = trim($_SESSION['csv']['format']['fieldEnc']);
