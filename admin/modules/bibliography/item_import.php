@@ -243,6 +243,9 @@ if (isset($_POST['doImport'])) {
 
                         $field = array_pad($field, $expected_item_column_count, null);
 
+                        // TEMP DIAGNOSTIC checkpoint E
+                        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint E: row_count=' . $row_count . ' field=' . var_export($field, true) . PHP_EOL, FILE_APPEND);
+
                         // preprocess fields
                         $item_code = trim((string) ($field[0] ?? ''));
                         $title = trim((string) ($field[18] ?? ''));
@@ -278,6 +281,9 @@ if (isset($_POST['doImport'])) {
                         $field[17] = !empty($field[17])?$field[17]:date('Y-m-d H:i:s');
                         $field[13] = !empty($field[13])?$field[13]:0.0;
 
+                        // TEMP DIAGNOSTIC checkpoint F
+                        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint F: after getID calls, field=' . var_export($field, true) . PHP_EOL, FILE_APPEND);
+
                         // get biblio_id
                         $b_q = $dbs->query(sprintf("select biblio_id from biblio where title = '%s'", $dbs->real_escape_string($title)));
                         if($b_q->num_rows < 1) {
@@ -289,7 +295,10 @@ if (isset($_POST['doImport'])) {
                         }
                         $b_d = $b_q->fetch_row();
                         $biblio_id = $b_d[0];
-        
+
+                        // TEMP DIAGNOSTIC checkpoint G
+                        @file_put_contents(__DIR__ . '/../../../files/temp/item_import_debug.log', '[' . date('Y-m-d H:i:s') . '] checkpoint G: biblio_id=' . var_export($biblio_id, true) . ' isItemExists=' . var_export(isItemExists($item_code), true) . PHP_EOL, FILE_APPEND);
+
                         // sql insert string
                         if (!isItemExists($item_code)) {
                             // prepend biblio id
